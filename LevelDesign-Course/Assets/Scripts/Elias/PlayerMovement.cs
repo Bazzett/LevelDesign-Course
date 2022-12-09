@@ -1,66 +1,84 @@
+using System;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-    [SerializeField] private CharacterController controller;
+    [SerializeField] private float speed;
+    [SerializeField] private float jumpHeight;
 
-    [Header("Movement values")]
-    [SerializeField] private float speed = 6f;
-    [SerializeField] private float jumpHeight = 3f;
-    
-    [Header("Gravity")]
-    [SerializeField] private float gravity;
+    private bool _isJumping;
+    private bool _isGrounded;
     [SerializeField] private Transform groundCheck;
     [SerializeField] private float groundDistance;
-    [SerializeField] private LayerMask groundMask;
+    [SerializeField] private LayerMask whatIsGround;
+    private float _jumpTimeCounter;
+    [SerializeField] private float jumpTime;
     
-    private Vector3 _velocity;
-    private bool _isGrounded;
-
-    private void Awake()
+    private Rigidbody _rb;
+    
+    
+    private void Start()
     {
-        Cursor.lockState = CursorLockMode.Locked;
+        _rb = GetComponent<Rigidbody>();
     }
 
-
-    void Update()
+    private void Update()
     {
-        //Check if the player are touching the ground
-        // Check from the feet and a little before 
-        _isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
-        
         Jump();
-        Movement();
-        
+    }
+
+    private void FixedUpdate()
+    {
+        Move();
     }
 
     private void Jump()
     {
-        if (Input.GetButtonDown("Jump") && _isGrounded)
+        _isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, whatIsGround);
+        
+        if (Input.GetKeyDown(KeyCode.Space) && _isGrounded)
         {
-            _velocity.y = Mathf.Sqrt(jumpHeight * -2 * gravity);
+            _isJumping = true;
+            _jumpTimeCounter = jumpTime;
+            _rb.velocity = Vector3.up * jumpHeight;
         }
         
-        _velocity.y += gravity * Time.deltaTime;
-        controller.Move(_velocity * Time.deltaTime);
-        
-        if (_isGrounded && _velocity.y < 0)
+        if (Input.GetKey(KeyCode.Space))
         {
-            _velocity.y = -2f;
+            if (_jumpTimeCounter > 0 && _isJumping)
+            {
+                _rb.velocity = Vector3.up * jumpHeight;
+                _jumpTimeCounter -= Time.deltaTime;
+            }
+            else
+            {
+                _isJumping = false; 
+            }
+            
+        }
+        if (Input.GetKeyUp(KeyCode.Space))
+        {
+            _isJumping = false;
         }
     }
 
-    private void Movement()
+    private void Move()
     {
-        float horizontal = Input.GetAxisRaw("Horizontal");
-        Vector3 direction = new Vector3(horizontal, 0, 0).normalized;
+        float move = Input.GetAxisRaw("Horizontal");
+
+        _rb.velocity = new Vector3(speed * move, _rb.velocity.y, 0);
+
         
-        if (direction.magnitude >= 0.1f)
+        //Rotate player
+        if (move > 0)
         {
-            /*float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
-            transform.rotation = Quaternion.Euler(0f, targetAngle,0f);*/
-            
-            controller.Move(direction * speed * Time.deltaTime);
+            transform.localScale = new Vector3(0.9f, 1.2f, 0.9f);
         }
+        else if (move < 0)
+        {
+            transform.localScale = new Vector3(-0.9f, 1.2f, 0.9f);
+        }
+       
     }
+    
 }
